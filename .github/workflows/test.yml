@@ -1,0 +1,41 @@
+name: Test
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - name: Setup secrets file
+        shell: bash
+        env:
+          BANANA_DEV_API_KEY: "${{ secrets.BANANA_DEV_API_KEY }}"
+          BANANA_DEV_WHISPER_MODEL_KEY: "${{ secrets.BANANA_DEV_WHISPER_MODEL_KEY }}"
+        run: |
+          mkdir -p src/.steamship/; echo -e "banana_dev_api_key =" "\"""$BANANA_DEV_API_KEY""\"\nbanana_dev_whisper_model_key =" "\"""$BANANA_DEV_WHISPER_MODEL_KEY""\"" > src/.steamship/secrets.toml
+
+      # Setup Python (faster than using Python container)
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+
+      - name: Install Virtualenv
+        run: |
+          python3 -m venv .venv
+      - name: Activate Virtualenv
+        run: |
+          source .venv/bin/activate
+      - name: Install Dependencies
+        run: |
+          python -m pip install -r requirements.txt
+      - name: Install Development Dependencies
+        run: |
+          python -m pip install -r requirements.dev.txt
+      - name: Run test suite
+        run: |
+          pytest
