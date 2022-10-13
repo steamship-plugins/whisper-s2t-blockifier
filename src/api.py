@@ -3,6 +3,7 @@
 An audio file is loaded and transcribed to text. All the resultant transcribed test will be
 included in a single block.
 """
+import json
 import logging
 import pathlib
 from typing import Type, Union
@@ -104,12 +105,12 @@ class WhisperBlockifier(Blockifier):
     def _check_transcription_status(
         self, transcription_id: str
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
-        self._logger.info(f"checking transcription status id={transcription_id}")
+        self._logger.info(f"checking transcription status id={json.dumps(transcription_id)}")
 
         try:
             whisper_response = self._client.check_transcription_request(transcription_id)
             if WhisperClient.is_success(whisper_response):
-                self._logger.info(f"transcription complete id={transcription_id}")
+                self._logger.info(f"transcription complete id={json.dumps(transcription_id)}")
                 return Response(
                     data=BlockAndTagPluginOutput(
                         file=File.CreateRequest(
@@ -122,15 +123,16 @@ class WhisperBlockifier(Blockifier):
                     )
                 )
         except Exception as e:
-            if "error" in str(e).lower():
-                self._logger.info(f"transcription failed id={transcription_id}")
+            lower_e = str(e).lower()
+            if lower_e.startswith("server error:"):
+                self._logger.info(f"could not get status of transcription id={json.dumps(transcription_id)} error={json.dumps(str(e))}")
+            elif "error" in lower_e:
+                self._logger.info(f"transcription failed id={json.dumps(transcription_id)} error={json.dumps(str(e))}")
                 # todo: should we raise an error here, or report a failure through normal mechanisms?
-                raise SteamshipError(message=f"Transcription failed: {e!s}")
-
-            self._logger.info(f"could not get status of transcription id={transcription_id}: {e!s}")
+                raise SteamshipError(message=f"Transcription failed: {json.dumps(str(e))}")
 
         # default to returning an "in-progress" status
-        self._logger.info(f"transcription in-progress id={transcription_id}")
+        self._logger.info(f"transcription in-progress id={json.dumps(transcription_id)}")
         return Response(
             status=Task(
                 state=TaskState.running,
@@ -148,7 +150,7 @@ class WhisperBlockifier(Blockifier):
         try:
             transcription_id = self._client.start_transcription(request.data.data)
         except Exception as e:
-            raise SteamshipError(f"could not schedule work: {e!s}")
+            raise SteamshipError(f"could not schedule work: {json.dumps(e)}")
 
         return self._check_transcription_status(transcription_id)
 

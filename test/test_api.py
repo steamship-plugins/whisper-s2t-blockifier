@@ -100,7 +100,7 @@ class MockWhisperClient:
     def check_transcription_request(self, transcription_id: str) -> dict[str, Any]:
         """Mock method."""
         if transcription_id == ERROR_TRANSCRIPTION_ID:
-            raise Exception("ERROR: i don't know some of these words")
+            raise Exception("ERROR: unknown words")
 
         return self.ids_to_responses.get(transcription_id)
 

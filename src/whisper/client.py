@@ -31,6 +31,8 @@ class WhisperClient:
 
         :param raw_audio: the audio file bytes (unencoded)
         :return: a transcription request identifier. this will be used to check on transcription status.
+        :raises Exception: when errors communicating with the backend model are encountered. This includes successful
+        requests that have "error" in a "message" field in their returned struct.
         """
         encoded = base64.b64encode(raw_audio).decode("ISO-8859-1")
         model_payload = {"mp3BytesString": encoded}
@@ -41,6 +43,8 @@ class WhisperClient:
 
         :param transcription_id: the transcription request identifier that was returned from `start_transcription`
         :return: the structured response from the backend. for details, see https://www.banana.dev/docs/rest-api
+        :raises Exception: when errors communicating with the backend model are encountered. This includes successful
+        requests that have "error" in a "message" field in their returned struct.
         """
         return banana_dev.check(self._api_key, transcription_id)
 
