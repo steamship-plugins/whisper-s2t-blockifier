@@ -11,3 +11,6 @@ max_complexity = 10
 # TODO: https://github.com/terrencepreilly/darglint/issues/130
 docstring_style = numpy
 strictness = long
+
+# For now, ignore package
+exclude = src/banana_dev/__init__.py

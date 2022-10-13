@@ -3,7 +3,7 @@
 import base64
 from typing import Any
 
-import banana_dev
+from src import banana_dev
 
 
 class WhisperClient:
@@ -55,17 +55,6 @@ class WhisperClient:
         return model_outputs.get("text") or ""
 
     @staticmethod
-    def is_error(response: dict[str, Any]) -> bool:
-        """Determine if an error was encountered during transcription.
-
-        :param response: the response from `check_transcription_request()`
-        :return: true, if there was an error; false otherwise.
-        """
-        # https://www.banana.dev/docs/rest-api: if message contains "error", then the inference failed.
-        message = response["message"]
-        return "error" in message
-
-    @staticmethod
     def is_success(response: dict[str, Any]) -> bool:
         """Determine if the backend has indicated the transcription completed successfully.
 
@@ -74,5 +63,5 @@ class WhisperClient:
         """
         # https://www.banana.dev/docs/rest-api: if message == "success", then the results will be found in the
         # modelOutputs field.
-        message = response["message"]
+        message = response["message"].lower()
         return message == "success"

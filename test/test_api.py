@@ -87,7 +87,6 @@ class MockWhisperClient:
     ids_to_responses = {
         NEW_TRANSCRIPTION_ID: {"message": "transcription is running"},
         RUNNING_TRANSCRIPTION_ID: {"message": "transcription is running"},
-        ERROR_TRANSCRIPTION_ID: {"message": "there was an error in transcription"},
         COMPLETE_TRANSCRIPTION_ID: {
             "message": "success",
             "modelOutputs": {"text": "why, hello there!"},
@@ -100,6 +99,9 @@ class MockWhisperClient:
 
     def check_transcription_request(self, transcription_id: str) -> dict[str, Any]:
         """Mock method."""
+        if transcription_id == ERROR_TRANSCRIPTION_ID:
+            raise Exception("ERROR: i don't know some of these words")
+
         return self.ids_to_responses.get(transcription_id)
 
 

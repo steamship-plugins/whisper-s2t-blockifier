@@ -106,29 +106,28 @@ class WhisperBlockifier(Blockifier):
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         self._logger.info(f"checking transcription status id={transcription_id}")
 
-        whisper_response = self._client.check_transcription_request(transcription_id)
-
-        # if transcription failed, raise an exception for downstream error handling
-        if WhisperClient.is_error(whisper_response):
-            self._logger.info(f"transcription failed id={transcription_id}")
-            # todo: should we raise an error here, or report a failure through normal mechanisms?
-            raise SteamshipError(
-                message=f"Transcription failed: {whisper_response['message']}"
-            )
-
-        if WhisperClient.is_success(whisper_response):
-            self._logger.info(f"transcription complete id={transcription_id}")
-            return Response(
-                data=BlockAndTagPluginOutput(
-                    file=File.CreateRequest(
-                        blocks=[
-                            Block.CreateRequest(
-                                text=WhisperClient.get_transcription(whisper_response)
-                            )
-                        ]
+        try:
+            whisper_response = self._client.check_transcription_request(transcription_id)
+            if WhisperClient.is_success(whisper_response):
+                self._logger.info(f"transcription complete id={transcription_id}")
+                return Response(
+                    data=BlockAndTagPluginOutput(
+                        file=File.CreateRequest(
+                            blocks=[
+                                Block.CreateRequest(
+                                    text=WhisperClient.get_transcription(whisper_response)
+                                )
+                            ]
+                        )
                     )
                 )
-            )
+        except Exception as e:
+            if "error" in str(e).lower():
+                self._logger.info(f"transcription failed id={transcription_id}")
+                # todo: should we raise an error here, or report a failure through normal mechanisms?
+                raise SteamshipError(message=f"Transcription failed: {e!s}")
+
+            self._logger.info(f"could not get status of transcription id={transcription_id}: {e!s}")
 
         # default to returning an "in-progress" status
         self._logger.info(f"transcription in-progress id={transcription_id}")
@@ -145,7 +144,11 @@ class WhisperBlockifier(Blockifier):
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         self._check_mime_type(request)
         self._logger.info("starting transcription...")
-        transcription_id = self._client.start_transcription(request.data.data)
+
+        try:
+            transcription_id = self._client.start_transcription(request.data.data)
+        except Exception as e:
+            raise SteamshipError(f"could not schedule work: {e!s}")
 
         return self._check_transcription_status(transcription_id)
 
@@ -158,11 +161,6 @@ class WhisperBlockifier(Blockifier):
             )
 
         return mime_type
-
-    def _start_transcription(self, raw_audio: bytes) -> str:
-        self._logger.info("starting transcription...")
-
-        return self._client.start_transcription(raw_audio)
 
 
 handler = create_handler(WhisperBlockifier)
