@@ -36,7 +36,6 @@ def start(api_key, model_key, model_inputs):
         raise Exception(out["message"])
 
     return out["callID"]
-    # return "foo-test-id"
 
 
 def check(api_key, call_id):
@@ -64,5 +63,3 @@ def check(api_key, call_id):
     if "error" in out["message"].lower():
         raise Exception(out["message"])
     return out
-
-    # return {"message": "success", "modelOutputs": {"text": "hello-world"}}

@@ -19,8 +19,15 @@ This repository is configured to auto-test upon pull-requests to the `main` and 
 
 ### Automated testing setup
 
-Testing requires that you set a GitHub secret named `steamship_key_test`. This secret will be used to set the `STEAMSHIP_API_KEY` environment variable during test running.
+Unit tests will run for each pull request against `main` and every repository push.
+
+Integration tests will run after a PR approval has been registered. The tests will run against the staging
+instance of Steamship. This requires that a version matching the version in `steamship.json`
+be deployed to the staging environment.
+
+PRs should not be merged without passing unit tests, PR approvals, and passing integration tests.
 
 ### Configuring or removing automated testing
 
 Automated tests are run from the GitHub workflow located in `.github/workflows/test.yml`
+    

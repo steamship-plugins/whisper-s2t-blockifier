@@ -13,7 +13,7 @@ def get_transcription(response: Dict[str, Any]) -> str:
     if len(model_outputs) < 1:
         return ""
 
-    return model_outputs[0].get("text") or ""
+    return model_outputs[0].get("text").strip() or ""
 
 
 def is_success(response: Dict[str, Any]) -> bool:

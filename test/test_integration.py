@@ -1,20 +1,22 @@
 """Test whisper-s2t-blockifier via integration tests."""
-
-from test import TEST_DATA
+import json
+from test import REPO_ROOTDIR, TEST_DATA
 from typing import Any, Dict
 
 from steamship import File, PluginInstance, Steamship
 from steamship.base.mime_types import MimeTypes
 
-BLOCKIFIER_HANDLE = "whisper-s2t-blockifier"
 ENVIRONMENT = "staging"
 
 
 def _get_plugin_instance(
-    client: Steamship, handle: str, config: Dict[str, Any] = None
+        client: Steamship, config: Dict[str, Any] = None
 ) -> PluginInstance:
+    steamship_manifest = json.load(open(REPO_ROOTDIR / "steamship.json", "rb"))
+    plugin_handle = steamship_manifest.get("handle") or ""
+    plugin_version_handle = steamship_manifest.get("version") or ""
     plugin_instance = PluginInstance.create(
-        client, plugin_handle=handle, upsert=True, config=config
+        client, plugin_handle=plugin_handle, plugin_version_handle=plugin_version_handle, upsert=True, config=config
     ).data
     assert plugin_instance is not None
     assert plugin_instance.id is not None
@@ -24,7 +26,7 @@ def _get_plugin_instance(
 def test_blockifier():
     """Test the Whisper Blockifier via an integration test."""
     client = Steamship(profile=ENVIRONMENT)
-    blockifier = _get_plugin_instance(client=client, handle=BLOCKIFIER_HANDLE)
+    blockifier = _get_plugin_instance(client=client)
     audio_path = TEST_DATA / "OSR_us_000_0010_8k.wav"
     file = File.create(
         client, filename=str(audio_path.resolve()), mime_type=MimeTypes.WAV

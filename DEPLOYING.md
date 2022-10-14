@@ -2,11 +2,10 @@
 
 ## Manual Deployments
 
-Deploy your app or plugin to Steamship by running, respectively:
+Deploy your plugin to Steamship by running, respectively:
 
 ```bash
-ship app:deploy
-ship plugin:deploy
+ship deploy
 ```
 
 from the root directory of this project.
@@ -24,7 +23,7 @@ Staging deployments occur upon:
 
 When pushing to a SemVer-style tag, the tag's version must match the version contained within `steamship.json`.
 
-New versions of a Steamship App or Plugin automatically become the "default" version. Unless an instance specifically requests a version, this default version will be used. 
+New versions of a Steamship Plugin automatically become the "default" version. Unless an instance specifically requests a version, this default version will be used. 
 
 ## Deployment Setup
 

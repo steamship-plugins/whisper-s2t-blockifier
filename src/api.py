@@ -39,8 +39,6 @@ class WhisperBlockifier(Blockifier):
     ----------
     config : WhisperBlockifierConfig
         The required configuration used to instantiate a whisper-s2t-blockifier
-    _logger : logging.Logger
-        Used to log information on plugin behavior
     _client : whisper.client.WhisperClient
         Client for backend whisper model
     """
@@ -70,7 +68,6 @@ class WhisperBlockifier(Blockifier):
         }
 
         super().__init__(**kwargs)
-        self._logger = logging.getLogger(__name__)
         self._client = WhisperClient(
             api_key=self.config.banana_dev_api_key,
             model_key=self.config.banana_dev_whisper_model_key,
@@ -84,7 +81,7 @@ class WhisperBlockifier(Blockifier):
             self, request: PluginRequest[RawDataPluginInput]
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         """Transcribe the audio file, store the transcription results in blocks and tags."""
-        self._logger.info("received request")
+        logging.debug("received request")
         if request.is_status_check:
             return self._check_status(request)
 
@@ -110,35 +107,34 @@ class WhisperBlockifier(Blockifier):
     def _check_transcription_status(
             self, transcription_id: str
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
-        self._logger.info(f"checking transcription status id={json.dumps(transcription_id)}")
+        logging.info(f"checking transcription status id={json.dumps(transcription_id)}")
         out = self._client.check_transcription_request(transcription_id)
         if whisper_response.is_success(out):
-            self._logger.info(f"transcription complete id={json.dumps(transcription_id)}")
+            logging.info(f"transcription complete id={json.dumps(transcription_id)}")
             return steamship_response.with_blocks([block.create_from_text(whisper_response.get_transcription(out))])
 
-        self._logger.info(f"transcription in-progress id={json.dumps(transcription_id)}")
+        logging.info(f"transcription in-progress id={json.dumps(transcription_id)}")
         return steamship_response.with_status(TaskState.running, "Transcription job ongoing.", transcription_id)
 
     def _handle_check_error(self, message, transcription_id: str) -> Response:
         msg = message.lower()
         if msg.startswith("server error:"):
-            self._logger.warning(
+            logging.warning(
                 f"could not get status of transcription id={json.dumps(transcription_id)} error={json.dumps(msg)}")
             return steamship_response.with_status(TaskState.running, "Transcription job ongoing.", transcription_id)
 
-        self._logger.error(f"transcription failed id={json.dumps(transcription_id)} error={json.dumps(msg)}")
-        # todo: should we raise an error here, or report a failure through normal mechanisms?
+        logging.error(f"transcription failed id={json.dumps(transcription_id)} error={json.dumps(msg)}")
         raise SteamshipError(message=f"Transcription failed: {json.dumps(msg)}")
 
     def _start_work(
             self, request: PluginRequest
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         self._check_mime_type(request)
-        self._logger.debug("starting transcription...")
+        logging.debug("starting transcription...")
 
         try:
             transcription_id = self._client.start_transcription(request.data.data)
-            self._logger.info(f"started transcription: id={json.dumps(transcription_id)}")
+            logging.info(f"started transcription: id={json.dumps(transcription_id)}")
         except Exception as e:
             raise SteamshipError(f"could not schedule work: {json.dumps(e)}")
 
