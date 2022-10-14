@@ -11,7 +11,7 @@ from steamship.plugin.outputs.block_and_tag_plugin_output import \
     BlockAndTagPluginOutput
 from steamship.plugin.request import PluginRequest
 
-from src.api import WhisperBlockifier
+from api import WhisperBlockifier
 
 NEW_TRANSCRIPTION_ID = "foo-new1234"
 NEW_TRANSCRIPTION_REQUEST = PluginRequest[RawDataPluginInput]()

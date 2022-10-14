@@ -36,6 +36,6 @@ jobs:
       - name: Install Development Dependencies
         run: |
           python -m pip install -r requirements.dev.txt
-      - name: Run test suite
+      - name: Run unit tests
         run: |
-          pytest
+          pytest test/test_api.py
