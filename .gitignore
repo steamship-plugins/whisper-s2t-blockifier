@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# IDE/Mac OS X
+.idea
+.DS_Store
+
+# Steamship Secrets
+src/.steamship/*
