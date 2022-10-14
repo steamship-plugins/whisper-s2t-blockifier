@@ -9,9 +9,9 @@ import pathlib
 from typing import Type, Union
 
 import toml
-from steamship import Block, File, SteamshipError
+from steamship import SteamshipError
 from steamship.app import Response, create_handler
-from steamship.base import Task, TaskState
+from steamship.base import TaskState
 from steamship.base.mime_types import MimeTypes
 from steamship.plugin.blockifier import Blockifier, Config
 from steamship.plugin.inputs.raw_data_plugin_input import RawDataPluginInput
@@ -19,7 +19,10 @@ from steamship.plugin.outputs.block_and_tag_plugin_output import \
     BlockAndTagPluginOutput
 from steamship.plugin.service import PluginRequest
 
-from src.whisper.client import WhisperClient
+import block
+import steamship_response
+import whisper.response as whisper_response
+from whisper.client import WhisperClient
 
 
 class WhisperBlockifierConfig(Config):
@@ -78,7 +81,7 @@ class WhisperBlockifier(Blockifier):
         return WhisperBlockifierConfig
 
     def run(
-        self, request: PluginRequest[RawDataPluginInput]
+            self, request: PluginRequest[RawDataPluginInput]
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         """Transcribe the audio file, store the transcription results in blocks and tags."""
         self._logger.info("received request")
@@ -88,71 +91,61 @@ class WhisperBlockifier(Blockifier):
         return self._start_work(request)
 
     def _check_status(
-        self, request: PluginRequest[RawDataPluginInput]
+            self, request: PluginRequest[RawDataPluginInput]
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         if (
-            request.status.remote_status_input is None
-            or "transcription_id" not in request.status.remote_status_input
+                request.status.remote_status_input is None
+                or "transcription_id" not in request.status.remote_status_input
         ):
             raise SteamshipError(
                 message="Status check requests must provide a valid 'transcription_id'."
             )
 
-        return self._check_transcription_status(
-            request.status.remote_status_input.get("transcription_id")
-        )
+        transcription_id = request.status.remote_status_input.get("transcription_id")
+        try:
+            return self._check_transcription_status(transcription_id)
+        except Exception as exc:
+            self._handle_check_error(str(exc), transcription_id)
 
     def _check_transcription_status(
-        self, transcription_id: str
+            self, transcription_id: str
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         self._logger.info(f"checking transcription status id={json.dumps(transcription_id)}")
+        out = self._client.check_transcription_request(transcription_id)
+        if whisper_response.is_success(out):
+            self._logger.info(f"transcription complete id={json.dumps(transcription_id)}")
+            return steamship_response.with_blocks([block.create_from_text(whisper_response.get_transcription(out))])
 
-        try:
-            whisper_response = self._client.check_transcription_request(transcription_id)
-            if WhisperClient.is_success(whisper_response):
-                self._logger.info(f"transcription complete id={json.dumps(transcription_id)}")
-                return Response(
-                    data=BlockAndTagPluginOutput(
-                        file=File.CreateRequest(
-                            blocks=[
-                                Block.CreateRequest(
-                                    text=WhisperClient.get_transcription(whisper_response)
-                                )
-                            ]
-                        )
-                    )
-                )
-        except Exception as e:
-            lower_e = str(e).lower()
-            if lower_e.startswith("server error:"):
-                self._logger.info(f"could not get status of transcription id={json.dumps(transcription_id)} error={json.dumps(str(e))}")
-            elif "error" in lower_e:
-                self._logger.info(f"transcription failed id={json.dumps(transcription_id)} error={json.dumps(str(e))}")
-                # todo: should we raise an error here, or report a failure through normal mechanisms?
-                raise SteamshipError(message=f"Transcription failed: {json.dumps(str(e))}")
-
-        # default to returning an "in-progress" status
         self._logger.info(f"transcription in-progress id={json.dumps(transcription_id)}")
-        return Response(
-            status=Task(
-                state=TaskState.running,
-                remote_status_message="Transcription job ongoing.",
-                remote_status_input={"transcription_id": transcription_id},
-            )
-        )
+        return steamship_response.with_status(TaskState.running, "Transcription job ongoing.", transcription_id)
+
+    def _handle_check_error(self, message, transcription_id: str) -> Response:
+        msg = message.lower()
+        if msg.startswith("server error:"):
+            self._logger.warning(
+                f"could not get status of transcription id={json.dumps(transcription_id)} error={json.dumps(msg)}")
+            return steamship_response.with_status(TaskState.running, "Transcription job ongoing.", transcription_id)
+
+        self._logger.error(f"transcription failed id={json.dumps(transcription_id)} error={json.dumps(msg)}")
+        # todo: should we raise an error here, or report a failure through normal mechanisms?
+        raise SteamshipError(message=f"Transcription failed: {json.dumps(msg)}")
 
     def _start_work(
-        self, request: PluginRequest
+            self, request: PluginRequest
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         self._check_mime_type(request)
-        self._logger.info("starting transcription...")
+        self._logger.debug("starting transcription...")
 
         try:
             transcription_id = self._client.start_transcription(request.data.data)
+            self._logger.info(f"started transcription: id={json.dumps(transcription_id)}")
         except Exception as e:
             raise SteamshipError(f"could not schedule work: {json.dumps(e)}")
 
-        return self._check_transcription_status(transcription_id)
+        try:
+            return self._check_transcription_status(transcription_id)
+        except Exception as exc:
+            self._handle_check_error(str(exc), transcription_id)
 
     def _check_mime_type(self, request: PluginRequest) -> str:
         mime_type = request.data.default_mime_type

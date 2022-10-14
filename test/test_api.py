@@ -89,7 +89,7 @@ class MockWhisperClient:
         RUNNING_TRANSCRIPTION_ID: {"message": "transcription is running"},
         COMPLETE_TRANSCRIPTION_ID: {
             "message": "success",
-            "modelOutputs": {"text": "why, hello there!"},
+            "modelOutputs": [{"text": "why, hello there!"}],
         },
     }
 
@@ -142,5 +142,5 @@ def test_run(plugin_request, expected_response, want_exception, mocker):
             want_exception is False
         ), "run() should have resulted in a raised SteamshipError"
         assert got_response == expected_response, "run() produced incorrect results"
-    except SteamshipError:
-        assert want_exception is True, "run() produced unexpected exception"
+    except SteamshipError as e:
+        assert want_exception is True, f"run() produced unexpected exception: {str(e)}"

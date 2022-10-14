@@ -1,9 +1,9 @@
 """Provides a thin client for a backend running a Whisper model."""
 
 import base64
-from typing import Any
+from typing import Any, Dict
 
-from src import banana_dev
+import banana_dev
 
 
 class WhisperClient:
@@ -38,7 +38,7 @@ class WhisperClient:
         model_payload = {"mp3BytesString": encoded}
         return banana_dev.start(self._api_key, self._model_key, model_payload)
 
-    def check_transcription_request(self, transcription_id: str) -> dict[str, Any]:
+    def check_transcription_request(self, transcription_id: str) -> Dict[str, Any]:
         """Check on the status of an ongoing transcription.
 
         :param transcription_id: the transcription request identifier that was returned from `start_transcription`
@@ -47,25 +47,3 @@ class WhisperClient:
         requests that have "error" in a "message" field in their returned struct.
         """
         return banana_dev.check(self._api_key, transcription_id)
-
-    @staticmethod
-    def get_transcription(response: dict[str, Any]) -> str:
-        """Extract the transcribed text from the backend response.
-
-        :param response: the response from `check_transcription_request()`
-        :return: the transcribed text, if any
-        """
-        model_outputs = response.get("modelOutputs") or {}
-        return model_outputs.get("text") or ""
-
-    @staticmethod
-    def is_success(response: dict[str, Any]) -> bool:
-        """Determine if the backend has indicated the transcription completed successfully.
-
-        :param response: the response from `check_transcription_request()`
-        :return: true, if transcription was successful; false otherwise.
-        """
-        # https://www.banana.dev/docs/rest-api: if message == "success", then the results will be found in the
-        # modelOutputs field.
-        message = response["message"].lower()
-        return message == "success"
