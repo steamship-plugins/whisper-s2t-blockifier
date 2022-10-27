@@ -1,4 +1,4 @@
-# https://pre-commit.com
+# pre-commit install
 default_install_hook_types: [commit-msg, pre-commit]
 default_stages: [commit, manual]
 fail_fast: true
@@ -55,12 +55,12 @@ repos:
         require_serial: true
         language: python
         types: [python]
-#      - id: black
-#        name: black
-#        entry: black
-#        require_serial: true
-#        language: python
-#        types: [python]
+      - id: black
+        name: black
+        entry: black
+        require_serial: true
+        language: python
+        types: [python]
       - id: shellcheck
         name: shellcheck
         entry: shellcheck --check-sourced

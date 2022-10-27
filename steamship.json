@@ -6,11 +6,22 @@
   "description": "Blockifies audio via Whisper-based transcription",
   "public": true,
   "type": "plugin",
-  "version": "0.0.40",
+  "version": "0.1.0",
   "plugin": {
     "isTrainable": false,
     "transport": "jsonOverHttp",
     "type": "blockifier"
   },
-  "configTemplate": {}
+  "configTemplate": {
+    "get_segments": {
+      "type": "boolean",
+      "description": "Return audio segments, with timestamps, from model ('segments'). If `true`, this plugin will construct the full transcript by concatenating segments. If `false`, a full transcription will be returned ('text').",
+      "default": false
+    },
+    "whisper_model": {
+      "type": "string",
+      "description": "Determines which whisper model will be used for transcription (must be one of: tiny, base, small, or medium).",
+      "default": "base"
+    }
+  }
 }

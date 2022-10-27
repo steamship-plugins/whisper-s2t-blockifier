@@ -1,23 +1,20 @@
 """Unit tests for the whisper-s2t-blockifier."""
 
-from typing import Any
+from typing import Any, Dict
 
 import pytest
 from steamship import Block, File, SteamshipError
 from steamship.app import Response
 from steamship.base import Task, TaskState
 from steamship.plugin.inputs.raw_data_plugin_input import RawDataPluginInput
-from steamship.plugin.outputs.block_and_tag_plugin_output import \
-    BlockAndTagPluginOutput
+from steamship.plugin.outputs.block_and_tag_plugin_output import BlockAndTagPluginOutput
 from steamship.plugin.request import PluginRequest
 
-from api import WhisperBlockifier
+from api import WhisperBlockifier, tag
 
 NEW_TRANSCRIPTION_ID = "foo-new1234"
 NEW_TRANSCRIPTION_REQUEST = PluginRequest[RawDataPluginInput]()
-NEW_TRANSCRIPTION_REQUEST.data = RawDataPluginInput(
-    data="", defaultMimeType="audio/wav"
-)
+NEW_TRANSCRIPTION_REQUEST.data = RawDataPluginInput(data="", defaultMimeType="audio/wav")
 NEW_TRANSCRIPTION_REQUEST.is_status_check = False
 NEW_TRANSCRIPTION_RESPONSE = Response(
     Task(
@@ -80,6 +77,36 @@ COMPLETE_RESPONSE = Response(
     )
 )
 
+COMPLETE_SEGMENTS_ID = "complete-segments-1234"
+STATUS_CHECK_SEGMENTS_COMPLETE = Task(
+    state=TaskState.running,
+    remote_status_message="Transcription job ongoing.",
+    remote_status_input={"transcription_id": COMPLETE_SEGMENTS_ID},
+)
+COMPLETE_SEGMENTS_REQUEST = PluginRequest[RawDataPluginInput]()
+COMPLETE_SEGMENTS_REQUEST.is_status_check = True
+COMPLETE_SEGMENTS_REQUEST.status = STATUS_CHECK_SEGMENTS_COMPLETE
+STATUS_SEGMENTS_COMPLETE = Task(
+    state=TaskState.succeeded,
+    remote_status_message="Transcription job ongoing.",
+    remote_status_input={"transcription_id": COMPLETE_SEGMENTS_ID},
+)
+COMPLETE_SEGMENTS_RESPONSE = Response(
+    data=BlockAndTagPluginOutput(
+        file=File.CreateRequest(
+            blocks=[
+                Block.CreateRequest(
+                    text="why, hello there!",
+                    tags=[
+                        tag.create_timestamp(0, 1.034, 2.30, "why, hello"),
+                        tag.create_timestamp(11, 2.30, 4.0345, "there!"),
+                    ],
+                )
+            ]
+        )
+    )
+)
+
 
 class MockWhisperClient:
     """Mock client used exclusively for testing."""
@@ -91,13 +118,24 @@ class MockWhisperClient:
             "message": "success",
             "modelOutputs": [{"text": "why, hello there!"}],
         },
+        COMPLETE_SEGMENTS_ID: {
+            "message": "success",
+            "modelOutputs": [
+                {
+                    "segments": [
+                        {"start": 1.034, "end": 2.30, "text": "why, hello"},
+                        {"start": 2.30, "end": 4.0345, "text": "there!"},
+                    ]
+                }
+            ],
+        },
     }
 
-    def start_transcription(self, raw_audio: bytes) -> str:
+    def start_transcription(self, raw_audio: bytes, use_segments: bool) -> str:
         """Mock method."""
         return NEW_TRANSCRIPTION_ID
 
-    def check_transcription_request(self, transcription_id: str) -> dict[str, Any]:
+    def check_transcription_request(self, transcription_id: str) -> Dict[str, Any]:
         """Mock method."""
         if transcription_id == ERROR_TRANSCRIPTION_ID:
             raise Exception("ERROR: unknown words")
@@ -110,17 +148,39 @@ testdata = [
         NEW_TRANSCRIPTION_REQUEST,
         NEW_TRANSCRIPTION_RESPONSE,
         False,
-    ),  # no exception expected
-    (INVALID_TRANSCRIPTION_REQUEST, None, True),  # expect exception
-    (RUNNING_REQUEST, RUNNING_RESPONSE, False),  # no exception expected
-    (ERROR_REQUEST, None, True),  # expect exception
-    (MISSING_REQUEST, None, True),  # expect exception
-    (COMPLETE_REQUEST, COMPLETE_RESPONSE, False),  # no exception expected
+        False,
+    ),  # full transcription, no exception expected
+    (
+        INVALID_TRANSCRIPTION_REQUEST,
+        None,
+        False,
+        True,
+    ),  # full transcription, expect exception
+    (
+        RUNNING_REQUEST,
+        RUNNING_RESPONSE,
+        False,
+        False,
+    ),  # full transcription, no exception expected
+    (ERROR_REQUEST, None, False, True),  # full transcription, expect exception
+    (MISSING_REQUEST, None, False, True),  # full transcription, expect exception
+    (
+        COMPLETE_REQUEST,
+        COMPLETE_RESPONSE,
+        False,
+        False,
+    ),  # full transcription, no exception expected
+    (
+        COMPLETE_SEGMENTS_REQUEST,
+        COMPLETE_SEGMENTS_RESPONSE,
+        True,
+        False,
+    ),  # segments, no exception expected
 ]
 
 
 @pytest.mark.parametrize(
-    "plugin_request, expected_response, want_exception",
+    "plugin_request, expected_response, get_segments, want_exception",
     testdata,
     ids=[
         "new_transcription",
@@ -129,18 +189,17 @@ testdata = [
         "error_transcription",
         "missing_transcription_id",
         "completed_transcription",
+        "completed_segments",
     ],
 )
-def test_run(plugin_request, expected_response, want_exception, mocker):
+def test_run(plugin_request, expected_response, get_segments, want_exception, mocker):
     """Tests the run() method of the blockifier, using a mock backend client."""
-    blockifier = WhisperBlockifier()
+    blockifier = WhisperBlockifier(config={"whisper_model": "base", "get_segments": get_segments})
     mocker.patch.object(blockifier, "_client", MockWhisperClient())
 
     try:
         got_response = blockifier.run(plugin_request)
-        assert (
-            want_exception is False
-        ), "run() should have resulted in a raised SteamshipError"
+        assert want_exception is False, "run() should have resulted in a raised SteamshipError"
         assert got_response == expected_response, "run() produced incorrect results"
     except SteamshipError as e:
         assert want_exception is True, f"run() produced unexpected exception: {str(e)}"

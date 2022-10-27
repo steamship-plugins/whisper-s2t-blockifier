@@ -15,12 +15,12 @@ from steamship.base import TaskState
 from steamship.base.mime_types import MimeTypes
 from steamship.plugin.blockifier import Blockifier, Config
 from steamship.plugin.inputs.raw_data_plugin_input import RawDataPluginInput
-from steamship.plugin.outputs.block_and_tag_plugin_output import \
-    BlockAndTagPluginOutput
+from steamship.plugin.outputs.block_and_tag_plugin_output import BlockAndTagPluginOutput
 from steamship.plugin.service import PluginRequest
 
 import block
 import steamship_response
+import tag
 import whisper.response as whisper_response
 from whisper.client import WhisperClient
 
@@ -30,6 +30,10 @@ class WhisperBlockifierConfig(Config):
 
     banana_dev_api_key: str
     banana_dev_whisper_model_key: str
+
+    # configuration that will be used to select configurable whisper model.
+    get_segments: bool
+    whisper_model: str
 
 
 class WhisperBlockifier(Blockifier):
@@ -68,19 +72,25 @@ class WhisperBlockifier(Blockifier):
         }
 
         super().__init__(**kwargs)
-        self._client = WhisperClient(
-            api_key=self.config.banana_dev_api_key,
-            model_key=self.config.banana_dev_whisper_model_key,
-        )
+        try:
+            self._client = WhisperClient(
+                api_key=self.config.banana_dev_api_key,
+                model_key=self.config.banana_dev_whisper_model_key,
+                whisper_model=self.config.whisper_model,
+            )
+        except ValueError as ve:
+            raise SteamshipError(
+                message=f"A valid whisper model type must be supplied in configuration: {ve}"
+            )
 
     def config_cls(self) -> Type[Config]:
         """Return the Configuration class."""
         return WhisperBlockifierConfig
 
     def run(
-            self, request: PluginRequest[RawDataPluginInput]
+        self, request: PluginRequest[RawDataPluginInput]
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
-        """Transcribe the audio file, store the transcription results in blocks and tags."""
+        """Transcribe the audio file, store the transcription results in blocks and tag.py."""
         logging.debug("received request")
         if request.is_status_check:
             return self._check_status(request)
@@ -88,11 +98,11 @@ class WhisperBlockifier(Blockifier):
         return self._start_work(request)
 
     def _check_status(
-            self, request: PluginRequest[RawDataPluginInput]
+        self, request: PluginRequest[RawDataPluginInput]
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         if (
-                request.status.remote_status_input is None
-                or "transcription_id" not in request.status.remote_status_input
+            request.status.remote_status_input is None
+            or "transcription_id" not in request.status.remote_status_input
         ):
             raise SteamshipError(
                 message="Status check requests must provide a valid 'transcription_id'."
@@ -105,35 +115,67 @@ class WhisperBlockifier(Blockifier):
             self._handle_check_error(str(exc), transcription_id)
 
     def _check_transcription_status(
-            self, transcription_id: str
+        self, transcription_id: str
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         logging.info(f"checking transcription status id={json.dumps(transcription_id)}")
         out = self._client.check_transcription_request(transcription_id)
         if whisper_response.is_success(out):
             logging.info(f"transcription complete id={json.dumps(transcription_id)}")
-            return steamship_response.with_blocks([block.create_from_text(whisper_response.get_transcription(out))])
+            if self.config.get_segments:
+                logging.info(f"getting segments id={json.dumps(transcription_id)}")
+                tags = []
+                transcription_text = ""
+                for segment in whisper_response.get_segments(out):
+                    segment_text = segment["text"].strip()
+                    transcription_text = f"{transcription_text} {segment_text}".strip()
+                    tags.append(
+                        tag.create_timestamp(
+                            len(transcription_text) - len(segment_text),
+                            segment["start"],
+                            segment["end"],
+                            segment_text,
+                        )
+                    )
+                logging.info(f"returning blocks with tags: {len(tags)}")
+                return steamship_response.with_blocks(
+                    [block.create_from_text(transcription_text, tags)]
+                )
+
+            logging.info("returning blocks without tags")
+            return steamship_response.with_blocks(
+                [block.create_from_text(whisper_response.get_transcription(out))]
+            )
 
         logging.info(f"transcription in-progress id={json.dumps(transcription_id)}")
-        return steamship_response.with_status(TaskState.running, "Transcription job ongoing.", transcription_id)
+        return steamship_response.with_status(
+            TaskState.running, "Transcription job ongoing.", transcription_id
+        )
 
     def _handle_check_error(self, message, transcription_id: str) -> Response:
         msg = message.lower()
         if msg.startswith("server error:"):
             logging.warning(
-                f"could not get status of transcription id={json.dumps(transcription_id)} error={json.dumps(msg)}")
-            return steamship_response.with_status(TaskState.running, "Transcription job ongoing.", transcription_id)
+                f"could not get status of transcription id={json.dumps(transcription_id)} error={json.dumps(msg)}"
+            )
+            return steamship_response.with_status(
+                TaskState.running, "Transcription job ongoing.", transcription_id
+            )
 
-        logging.error(f"transcription failed id={json.dumps(transcription_id)} error={json.dumps(msg)}")
+        logging.error(
+            f"transcription failed id={json.dumps(transcription_id)} error={json.dumps(msg)}"
+        )
         raise SteamshipError(message=f"Transcription failed: {json.dumps(msg)}")
 
     def _start_work(
-            self, request: PluginRequest
+        self, request: PluginRequest
     ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
         self._check_mime_type(request)
         logging.debug("starting transcription...")
 
         try:
-            transcription_id = self._client.start_transcription(request.data.data)
+            transcription_id = self._client.start_transcription(
+                request.data.data, self.config.get_segments
+            )
             logging.info(f"started transcription: id={json.dumps(transcription_id)}")
         except Exception as e:
             raise SteamshipError(f"could not schedule work: {json.dumps(e)}")

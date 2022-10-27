@@ -1,5 +1,6 @@
 """Borrow code from https://github.com/bananaml/banana-python-sdk pending dependency conflict resolution."""
 
+import logging
 import time
 from uuid import uuid4
 
@@ -22,6 +23,7 @@ def start(api_key, model_key, model_inputs):
         "startOnly": True,
     }
 
+    logging.info(f'getSegments={payload["modelInputs"]["getSegments"]}')
     response = requests.post(url_start, json=payload)
 
     if response.status_code != 200:
@@ -48,7 +50,7 @@ def check(api_key, call_id):
         "created": int(time.time()),
         "longPoll": True,
         "callID": call_id,
-        "apiKey": api_key
+        "apiKey": api_key,
     }
     response = requests.post(url_check, json=payload)
 
