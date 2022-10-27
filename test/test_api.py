@@ -4,8 +4,8 @@ from typing import Any, Dict
 
 import pytest
 from steamship import Block, File, SteamshipError
-from steamship.app import Response
 from steamship.base import Task, TaskState
+from steamship.invocable import InvocableResponse
 from steamship.plugin.inputs.raw_data_plugin_input import RawDataPluginInput
 from steamship.plugin.outputs.block_and_tag_plugin_output import BlockAndTagPluginOutput
 from steamship.plugin.request import PluginRequest
@@ -16,7 +16,7 @@ NEW_TRANSCRIPTION_ID = "foo-new1234"
 NEW_TRANSCRIPTION_REQUEST = PluginRequest[RawDataPluginInput]()
 NEW_TRANSCRIPTION_REQUEST.data = RawDataPluginInput(data="", defaultMimeType="audio/wav")
 NEW_TRANSCRIPTION_REQUEST.is_status_check = False
-NEW_TRANSCRIPTION_RESPONSE = Response(
+NEW_TRANSCRIPTION_RESPONSE = InvocableResponse(
     Task(
         state=TaskState.running,
         remote_status_message="Transcription job ongoing.",
@@ -40,7 +40,7 @@ STATUS_RUNNING = Task(
 RUNNING_REQUEST = PluginRequest[RawDataPluginInput]()
 RUNNING_REQUEST.is_status_check = True
 RUNNING_REQUEST.status = STATUS_RUNNING
-RUNNING_RESPONSE = Response(status=STATUS_RUNNING)
+RUNNING_RESPONSE = InvocableResponse(status=STATUS_RUNNING)
 
 STATUS_MISSING_TRANSCRIPTION_ID = Task(state=TaskState.running)
 MISSING_REQUEST = PluginRequest[RawDataPluginInput]()
@@ -71,7 +71,7 @@ STATUS_COMPLETE = Task(
     remote_status_message="Transcription job ongoing.",
     remote_status_input={"transcription_id": COMPLETE_TRANSCRIPTION_ID},
 )
-COMPLETE_RESPONSE = Response(
+COMPLETE_RESPONSE = InvocableResponse(
     data=BlockAndTagPluginOutput(
         file=File.CreateRequest(blocks=[Block.CreateRequest(text="why, hello there!")])
     )
@@ -91,7 +91,7 @@ STATUS_SEGMENTS_COMPLETE = Task(
     remote_status_message="Transcription job ongoing.",
     remote_status_input={"transcription_id": COMPLETE_SEGMENTS_ID},
 )
-COMPLETE_SEGMENTS_RESPONSE = Response(
+COMPLETE_SEGMENTS_RESPONSE = InvocableResponse(
     data=BlockAndTagPluginOutput(
         file=File.CreateRequest(
             blocks=[

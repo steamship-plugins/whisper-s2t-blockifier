@@ -24,21 +24,19 @@ And then login with:
 ```
 
 ```python
-from steamship import Steamship, PluginInstance, File, MimeTypes
+from steamship import Steamship, File, MimeTypes
 
-PLUGIN_HANDLE = "whisper-s2t-blockifier"
-PLUGIN_CONFIG = {}
+workspace = Steamship(workspace="whisper-s2t-plugin-demo-001")
+plugin_config = {"get_segments": True, "whisper_model": "tiny"}
+whisper = workspace.use_plugin("whisper-s2t-blockifier-staging", "whisper-instance-0001", config=plugin_config)
 
-client = Steamship(profile="staging")  # Without arguments, credentials in ~/.steamship.json will be used.
-s2t_plugin_instance = PluginInstance.create(
-    client, plugin_handle=PLUGIN_HANDLE, config=PLUGIN_CONFIG
-).data
 audio_path = "FILL_IN"
-file = File.create(client, filename=str(audio_path.resolve()), mime_type=MimeTypes.MP3).data
-tag_results = file.tag(plugin_instance=s2t_plugin_instance.handle)
-tag_results.wait()
+file = File.create(whisper.client, content=audio_path.open('rb').read(), mime_type=MimeTypes.MP3)
+blockify_response = file.blockify(plugin_instance=whisper.handle)
+blockify_response.wait(max_timeout_s=3600, retry_delay_s=1)
 
-file = file.refresh().data
+file = file.refresh()
+
 for block in file.blocks:
     print(block.text)
 ```
