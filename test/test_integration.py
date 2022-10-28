@@ -6,8 +6,6 @@ from typing import Any, Dict
 from steamship import File, PluginInstance, Steamship
 from steamship.base.mime_types import MimeTypes
 
-ENVIRONMENT = "staging"
-
 
 def _get_plugin_instance(client: Steamship, config: Dict[str, Any] = None) -> PluginInstance:
     steamship_manifest = json.load(open(REPO_ROOTDIR / "steamship.json", "rb"))
@@ -27,7 +25,7 @@ def _get_plugin_instance(client: Steamship, config: Dict[str, Any] = None) -> Pl
 
 def test_blockifier():
     """Test the Whisper Blockifier via an integration test."""
-    client = Steamship(profile=ENVIRONMENT, workspace="whisper-s2t-integration-test")
+    client = Steamship(workspace="whisper-s2t-integration-test")
     config = {"whisper_model": "tiny", "get_segments": False}
     blockifier = _get_plugin_instance(client=client, config=config)
     audio_path = TEST_DATA / "OSR_us_000_0010_8k.wav"
