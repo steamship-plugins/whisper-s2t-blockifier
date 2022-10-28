@@ -1,12 +1,12 @@
 {
   "author": "steamship-developers",
   "entrypoint": "api.handler",
-  "handle": "whisper-s2t-blockifier",
-  "name": "whisper-s2t-blockifier",
+  "handle": "whisper-s2t-blockifier-staging",
+  "name": "whisper-s2t-blockifier-staging",
   "description": "Blockifies audio via Whisper-based transcription",
   "public": true,
   "type": "plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "plugin": {
     "isTrainable": false,
     "transport": "jsonOverHttp",
