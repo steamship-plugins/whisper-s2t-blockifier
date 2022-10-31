@@ -50,13 +50,14 @@ class WhisperBlockifier(Blockifier):
     config: WhisperBlockifierConfig
 
     SUPPORTED_MIME_TYPES = (
-        # todo: determine full set of supported audio formats
+        # todo: determine full set of supported audio formats (or should we eliminate this check? it feels like a foot-gun.)
         MimeTypes.MP3,
         MimeTypes.WAV,
         "video/mp4",
         "audio/mp4",
         "audio/webm",
         "video/webm",
+        "audio/mp4a-latm",
     )
 
     def __init__(self, **kwargs):
