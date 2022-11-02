@@ -5,7 +5,7 @@
   "description": "Blockifies audio via Whisper-based transcription",
   "public": true,
   "type": "plugin",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "plugin": {
     "isTrainable": false,
     "transport": "jsonOverHttp",
@@ -24,18 +24,23 @@
     }
   },
   "steamshipRegistry": {
-  "tagline": "Convert audio into text.",
-  "tagline2": "Just load content into Steamship and run the files through Whisper for automated transcription.",
-  "usefulFor": "Useful for generating text from speech.",
-  "videoUrl": null,
-  "githubUrl": "https://github.com/steamship-plugins/whisper-s2t-blockifier",
-  "demoUrl": null,
-  "blogUrl": null,
-  "jupyterUrl": "https://github.com/steamship-plugins/whisper-s2t-blockifier/blob/main/example_usage.ipynb",
-  "authorName": "Steamship",
-  "authorEmail": "hello@steamship.com",
-  "authorTwitter": "@GetSteamship",
-  "authorUrl": "https://www.steamship.com/",
-  "tags": ["Audio", "Whisper", "S2T", "Transcription"]
-}
+    "tagline": "Convert audio into text.",
+    "tagline2": "Just load content into Steamship and run the files through Whisper for automated transcription.",
+    "usefulFor": "Useful for generating text from speech.",
+    "videoUrl": null,
+    "githubUrl": "https://github.com/steamship-plugins/whisper-s2t-blockifier",
+    "demoUrl": null,
+    "blogUrl": null,
+    "jupyterUrl": "https://github.com/steamship-plugins/whisper-s2t-blockifier/blob/main/example_usage.ipynb",
+    "authorName": "Steamship",
+    "authorEmail": "hello@steamship.com",
+    "authorTwitter": "@GetSteamship",
+    "authorUrl": "https://www.steamship.com/",
+    "tags": [
+      "Audio",
+      "Whisper",
+      "S2T",
+      "Transcription"
+    ]
+  }
 }
