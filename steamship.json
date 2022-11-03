@@ -23,5 +23,27 @@
       "description": "Determines which whisper model will be used for transcription (must be one of: tiny, base, small, or medium).",
       "default": "base"
     }
+  },
+  "steamshipRegistry": {
+    "tagline": "Transcribe audio with OpenAI's Whisper.",
+    "tagline2": "Just upload audio to Steamship and apply this Blockifier.",
+    "usefulFor": "Useful for high-quality transcriptions with real-world audio.",
+    "videoUrl": null,
+    "githubUrl": "https://github.com/steamship-plugins/whisper-s2t-blockifier",
+    "demoUrl": null,
+    "blogUrl": null,
+    "jupyterUrl": null,
+    "authorName": "Steamship",
+    "authorEmail": "hello@steamship.com",
+    "authorTwitter": "@GetSteamship",
+    "authorUrl": "https://www.steamship.com/",
+    "tags": [
+      "Audio",
+      "Whisper",
+      "OpenAI",
+      "Speech to Text",
+      "Transcription",
+      "S2T"
+    ]
   }
 }
