@@ -24,9 +24,9 @@
     }
   },
   "steamshipRegistry": {
-    "tagline": "Convert audio into text.",
-    "tagline2": "Just load content into Steamship and run the files through Whisper for automated transcription.",
-    "usefulFor": "Useful for generating text from speech.",
+    "tagline": "Transcribe audio with OpenAI's Whisper.",
+    "tagline2": "Just upload audio to Steamship and apply this Blockifier.",
+    "usefulFor": "Useful for high-quality transcriptions with real-world audio.",
     "videoUrl": null,
     "githubUrl": "https://github.com/steamship-plugins/whisper-s2t-blockifier",
     "demoUrl": null,
@@ -39,8 +39,9 @@
     "tags": [
       "Audio",
       "Whisper",
-      "S2T",
-      "Transcription"
+      "Speech to Text",
+      "Transcription",
+      "S2T"
     ]
   }
 }
