@@ -5,7 +5,7 @@
   "description": "Blockifies audio via Whisper-based transcription",
   "public": true,
   "type": "plugin",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "plugin": {
     "isTrainable": false,
     "transport": "jsonOverHttp",
