@@ -28,7 +28,7 @@ from steamship import Steamship, File, MimeTypes
 
 workspace = Steamship(workspace="whisper-s2t-plugin-demo-001")
 plugin_config = {"get_segments": True, "whisper_model": "tiny"}
-whisper = workspace.use_plugin("whisper-s2t-blockifier-staging", "whisper-instance-0001", config=plugin_config)
+whisper = workspace.use_plugin("whisper-s2t-blockifier", "whisper-instance-0001", config=plugin_config)
 
 audio_path = "FILL_IN"
 file = File.create(whisper.client, content=audio_path.open('rb').read(), mime_type=MimeTypes.MP3)
