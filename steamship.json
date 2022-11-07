@@ -1,12 +1,11 @@
 {
-  "author": "steamship-developers",
+  "author": "Steamship",
   "entrypoint": "api.handler",
   "handle": "whisper-s2t-blockifier",
-  "name": "whisper-s2t-blockifier",
   "description": "Blockifies audio via Whisper-based transcription",
   "public": true,
   "type": "plugin",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "plugin": {
     "isTrainable": false,
     "transport": "jsonOverHttp",
@@ -32,7 +31,7 @@
     "githubUrl": "https://github.com/steamship-plugins/whisper-s2t-blockifier",
     "demoUrl": null,
     "blogUrl": null,
-    "jupyterUrl": null,
+    "jupyterUrl": "https://github.com/steamship-plugins/whisper-s2t-blockifier/blob/main/example_usage.ipynb",
     "authorName": "Steamship",
     "authorEmail": "hello@steamship.com",
     "authorTwitter": "@GetSteamship",
@@ -40,7 +39,6 @@
     "tags": [
       "Audio",
       "Whisper",
-      "OpenAI",
       "Speech to Text",
       "Transcription",
       "S2T"

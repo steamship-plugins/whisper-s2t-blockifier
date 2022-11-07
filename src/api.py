@@ -10,13 +10,13 @@ from typing import Type, Union
 
 import toml
 from steamship import SteamshipError
-from steamship.app import Response, create_handler
 from steamship.base import TaskState
 from steamship.base.mime_types import MimeTypes
-from steamship.plugin.blockifier import Blockifier, Config
+from steamship.invocable import Config, InvocableResponse, create_handler
+from steamship.plugin.blockifier import Blockifier
 from steamship.plugin.inputs.raw_data_plugin_input import RawDataPluginInput
 from steamship.plugin.outputs.block_and_tag_plugin_output import BlockAndTagPluginOutput
-from steamship.plugin.service import PluginRequest
+from steamship.plugin.request import PluginRequest
 
 import block
 import steamship_response
@@ -50,13 +50,14 @@ class WhisperBlockifier(Blockifier):
     config: WhisperBlockifierConfig
 
     SUPPORTED_MIME_TYPES = (
-        # todo: determine full set of supported audio formats
+        # todo: determine full set of supported audio formats (or should we eliminate this check? it feels like a foot-gun.)
         MimeTypes.MP3,
         MimeTypes.WAV,
         "video/mp4",
         "audio/mp4",
         "audio/webm",
         "video/webm",
+        "audio/mp4a-latm",
     )
 
     def __init__(self, **kwargs):
@@ -89,7 +90,7 @@ class WhisperBlockifier(Blockifier):
 
     def run(
         self, request: PluginRequest[RawDataPluginInput]
-    ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
+    ) -> Union[InvocableResponse, InvocableResponse[BlockAndTagPluginOutput]]:
         """Transcribe the audio file, store the transcription results in blocks and tag.py."""
         logging.debug("received request")
         if request.is_status_check:
@@ -99,7 +100,7 @@ class WhisperBlockifier(Blockifier):
 
     def _check_status(
         self, request: PluginRequest[RawDataPluginInput]
-    ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
+    ) -> Union[InvocableResponse, InvocableResponse[BlockAndTagPluginOutput]]:
         if (
             request.status.remote_status_input is None
             or "transcription_id" not in request.status.remote_status_input
@@ -116,7 +117,7 @@ class WhisperBlockifier(Blockifier):
 
     def _check_transcription_status(
         self, transcription_id: str
-    ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
+    ) -> Union[InvocableResponse, InvocableResponse[BlockAndTagPluginOutput]]:
         logging.info(f"checking transcription status id={json.dumps(transcription_id)}")
         out = self._client.check_transcription_request(transcription_id)
         if whisper_response.is_success(out):
@@ -151,7 +152,7 @@ class WhisperBlockifier(Blockifier):
             TaskState.running, "Transcription job ongoing.", transcription_id
         )
 
-    def _handle_check_error(self, message, transcription_id: str) -> Response:
+    def _handle_check_error(self, message, transcription_id: str) -> InvocableResponse:
         msg = message.lower()
         if msg.startswith("server error:"):
             logging.warning(
@@ -168,7 +169,7 @@ class WhisperBlockifier(Blockifier):
 
     def _start_work(
         self, request: PluginRequest
-    ) -> Union[Response, Response[BlockAndTagPluginOutput]]:
+    ) -> Union[InvocableResponse, InvocableResponse[BlockAndTagPluginOutput]]:
         self._check_mime_type(request)
         logging.debug("starting transcription...")
 
