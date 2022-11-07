@@ -190,8 +190,8 @@ class WhisperBlockifier(Blockifier):
         mime_type = request.data.default_mime_type
         if mime_type not in self.SUPPORTED_MIME_TYPES:
             raise SteamshipError(
-                "Unsupported mimeType. "
-                f"The following mimeTypes are supported: {self.SUPPORTED_MIME_TYPES}"
+                f"Unsupported mime_type: {mime_type}."
+                f"The following mime_types are supported: {self.SUPPORTED_MIME_TYPES}"
             )
 
         return mime_type
