@@ -8,6 +8,7 @@ import logging
 import pathlib
 from typing import Type, Union
 
+import magic
 import toml
 from steamship import SteamshipError
 from steamship.base import TaskState
@@ -188,14 +189,34 @@ class WhisperBlockifier(Blockifier):
             self._handle_check_error(str(exc), transcription_id)
 
     def _check_mime_type(self, request: PluginRequest) -> str:
-        mime_type = request.data.default_mime_type
-        if mime_type not in self.SUPPORTED_MIME_TYPES:
+        supplied_mime_type = request.data.default_mime_type
+        # instead of being strict, let's start with assuming audio/* and video/* can be handled by the whisper transcription
+        if not supplied_mime_type.startswith("audio/") and not supplied_mime_type.startswith(
+            "video/"
+        ):
             raise SteamshipError(
-                f"Unsupported mime_type: {mime_type}."
-                f"The following mime_types are supported: {self.SUPPORTED_MIME_TYPES}"
+                f"Unsupported mime_type: '{supplied_mime_type}'."
+                f"Transcription can only be requested for 'audio/*' and 'video/*' files"
             )
 
-        return mime_type
+        raw_bytes = request.data.data
+        detected_mime_type = magic.from_buffer(raw_bytes[:2048], mime=True)
+        if detected_mime_type != supplied_mime_type:
+            logging.warning(
+                f"transcription requested for a file with mismatched mime_type. Given: {supplied_mime_type}, Detected: {detected_mime_type}"
+            )
+            # instead of being strict, let's start with assuming audio/* and video/* can be handled by the whisper transcription
+            if not detected_mime_type.startswith("audio/") and not detected_mime_type.startswith(
+                "video/"
+            ):
+                raise SteamshipError(
+                    f"Detected a different mime_type than was supplied for the file. "
+                    f"The detected mime_type is not supported: '{detected_mime_type}'. "
+                    f"Transcription can only be requested for 'audio/*' and 'video/*' files. "
+                    f"Please check that transcription is being run on the correct data."
+                )
+
+        return detected_mime_type
 
 
 handler = create_handler(WhisperBlockifier)

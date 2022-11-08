@@ -1,5 +1,6 @@
 """Unit tests for the whisper-s2t-blockifier."""
 
+from test import TEST_DATA
 from typing import Any, Dict
 
 import pytest
@@ -14,7 +15,9 @@ from api import WhisperBlockifier, tag
 
 NEW_TRANSCRIPTION_ID = "foo-new1234"
 NEW_TRANSCRIPTION_REQUEST = PluginRequest[RawDataPluginInput]()
-NEW_TRANSCRIPTION_REQUEST.data = RawDataPluginInput(data="", defaultMimeType="audio/wav")
+NEW_TRANSCRIPTION_REQUEST.data = RawDataPluginInput(
+    data=(open(TEST_DATA / "OSR_us_000_0010_8k.wav", "rb").read()), defaultMimeType="audio/wav"
+)
 NEW_TRANSCRIPTION_REQUEST.is_status_check = False
 NEW_TRANSCRIPTION_RESPONSE = InvocableResponse(
     Task(
@@ -23,6 +26,11 @@ NEW_TRANSCRIPTION_RESPONSE = InvocableResponse(
         remote_status_input={"transcription_id": NEW_TRANSCRIPTION_ID},
     )
 )
+
+BAD_MIME_TYPE_TRANSCRIPTION_ID = "foo-mismatched-file-type"
+BAD_MIME_TYPE_REQUEST = PluginRequest[RawDataPluginInput]()
+BAD_MIME_TYPE_REQUEST.data = RawDataPluginInput(data="", defaultMimeType="audio/wav")
+BAD_MIME_TYPE_REQUEST.is_status_check = False
 
 INVALID_TRANSCRIPTION_ID = "foo-invalid1234"
 INVALID_TRANSCRIPTION_REQUEST = PluginRequest[RawDataPluginInput]()
@@ -151,6 +159,12 @@ testdata = [
         False,
     ),  # full transcription, no exception expected
     (
+        BAD_MIME_TYPE_REQUEST,
+        None,
+        False,
+        True,
+    ),  # full transcription, expect exception for detected mime type (text/plain)
+    (
         INVALID_TRANSCRIPTION_REQUEST,
         None,
         False,
@@ -184,6 +198,7 @@ testdata = [
     testdata,
     ids=[
         "new_transcription",
+        "bad_mime_type_transcription",
         "invalid_transcription",
         "running_transcription",
         "error_transcription",
