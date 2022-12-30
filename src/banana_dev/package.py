@@ -1,6 +1,5 @@
 """Borrow code from https://github.com/bananaml/banana-python-sdk pending dependency conflict resolution."""
 
-import logging
 import time
 from uuid import uuid4
 
@@ -20,10 +19,8 @@ def start(api_key, model_key, model_inputs):
         "apiKey": api_key,
         "modelKey": model_key,
         "modelInputs": model_inputs,
-        "startOnly": True,
     }
 
-    logging.info(f'getSegments={payload["modelInputs"]["getSegments"]}')
     response = requests.post(url_start, json=payload)
 
     if response.status_code != 200:
@@ -37,7 +34,7 @@ def start(api_key, model_key, model_inputs):
     if "error" in out["message"].lower():
         raise Exception(out["message"])
 
-    return out["callID"]
+    return out
 
 
 def check(api_key, call_id):
