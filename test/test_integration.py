@@ -26,7 +26,7 @@ def _get_plugin_instance(client: Steamship, config: Dict[str, Any] = None) -> Pl
 def test_blockifier():
     """Test the Whisper Blockifier via an integration test."""
     client = Steamship(workspace="whisper-s2t-integration-test")
-    config = {"whisper_model": "tiny", "get_segments": False}
+    config = {}
     blockifier = _get_plugin_instance(client=client, config=config)
     audio_path = TEST_DATA / "OSR_us_000_0010_8k.wav"
     file = File.create(client, content=audio_path.open("rb").read(), mime_type=MimeTypes.WAV)

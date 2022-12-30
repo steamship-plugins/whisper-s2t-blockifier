@@ -131,9 +131,9 @@ class MockWhisperClient:
         },
     }
 
-    def start_transcription(self, raw_audio: bytes, use_segments: bool) -> str:
+    def start_transcription(self, audio_url: str) -> Dict[str, Any]:
         """Mock method."""
-        return NEW_TRANSCRIPTION_ID
+        return {"callID": NEW_TRANSCRIPTION_ID}
 
     def check_transcription_request(self, transcription_id: str) -> Dict[str, Any]:
         """Mock method."""
@@ -180,7 +180,7 @@ testdata = [
 
 
 @pytest.mark.parametrize(
-    "plugin_request, expected_response, get_segments, want_exception",
+    "plugin_request, expected_response, use_meeting_transcription_model, want_exception",
     testdata,
     ids=[
         "new_transcription",
@@ -192,10 +192,17 @@ testdata = [
         "completed_segments",
     ],
 )
-def test_run(plugin_request, expected_response, get_segments, want_exception, mocker):
+def test_run(
+    plugin_request, expected_response, use_meeting_transcription_model, want_exception, mocker
+):
     """Tests the run() method of the blockifier, using a mock backend client."""
-    blockifier = WhisperBlockifier(config={"whisper_model": "base", "get_segments": get_segments})
+    blockifier = WhisperBlockifier(
+        config={"use_meeting_transcription_model": use_meeting_transcription_model}
+    )
     mocker.patch.object(blockifier, "_client", MockWhisperClient())
+    mocker.patch.object(
+        blockifier, "_get_public_url_for_audio", return_value="https://fake/audio.m4a"
+    )
 
     try:
         got_response = blockifier.run(plugin_request)

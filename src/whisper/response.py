@@ -9,7 +9,7 @@ def get_transcription(response: Dict[str, Any]) -> str:
     :param response: the response from `check_transcription_request()`
     :return: the transcribed text, if any
     """
-    model_outputs = response.get("modelOutputs") or []
+    model_outputs = response.get("modelOutputs", [])
     if len(model_outputs) < 1:
         return ""
 
@@ -22,7 +22,7 @@ def get_segments(response: Dict[str, Any]) -> List[Any]:
     :param response: the response from `check_transcription_request()`
     :return: the segments, including start, end, and text, if any exist
     """
-    model_outputs = response.get("modelOutputs") or []
+    model_outputs = response.get("modelOutputs", [])
     if len(model_outputs) < 1:
         return []
 
@@ -37,5 +37,10 @@ def is_success(response: Dict[str, Any]) -> bool:
     """
     # https://www.banana.dev/docs/rest-api: if message == "success", then the results will be found in the
     # modelOutputs field.
-    message = response["message"].lower()
+    message = response.get("message", "unknown").lower()
     return message == "success"
+
+
+def is_finished(response: Dict[str, Any]) -> bool:
+    """Check a banana response for the 'finished' key, returning the value if found."""
+    return response.get("finished", False)
